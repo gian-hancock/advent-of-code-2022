@@ -7,19 +7,20 @@ fn main() {
     let line_iterator = io::BufReader::new(input_file).lines();
 
     // Iterate lines and calculate max
-    let mut sum: u64 = 0;
-    let mut max: u64 = 0;
+    let mut sums = vec![0];
     for line in line_iterator {
+        let curr = sums.len() - 1;
         let line = line.unwrap();
         if line == "" {
-            println!("Current: {}; Max: {}", sum, max);
-            max = max.max(sum);
-            sum = 0;
+            println!("Elf {} calories: {}", curr, sums[curr]);
+            sums.push(0);
         }
         else {
-            sum += line.parse::<u64>().unwrap();
+            sums[curr] += line.parse::<u64>().unwrap();
         }
         
     }
-    println!("Max: {}", max);
+
+    sums.sort();
+    println!("Total calories of top 3 elves: {:?}", sums.into_iter().rev().take(3).sum::<u64>());
 }
