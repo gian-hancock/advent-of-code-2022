@@ -132,11 +132,3 @@ impl<T: Iterator<Item = char>> Scanner<T> {
 
     }
 }
-
-
-/*WVWPBNGZ WVWPBNGZW
-VLCWHTDSZ
-[['G', 'W', 'N', 'C', 'V'], ['L'], ['C'], ['W'], ['M', 'B', 'N', 'P', 'W', 'B', 'V', 'J', 'B', 'T', 'M', 'D', 'C', 'F', 'T', 'B', 'C', 'W', 'N', 'H'], 
-['F', 'T'], ['N', 'C', 'W', 'D', 'Z', 'G', 'B', 'V', 'S', 'T', 'S', 'D'], ['S'], ['M', 'G', 'P', 'R', 'L', 'F', 'Q', 'G', 'S', 'J', 'Z', 'V', 'Z']]
-
- */
