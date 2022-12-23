@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::{fs};
+use std::fs;
 
 fn main() {
     // # Parse input file
@@ -14,6 +14,78 @@ fn main() {
         .collect();
     println!("{:?}", grid);
 
+    part_2(grid, height, width);
+}
+
+fn part_2(grid: Vec<i32>, height: usize, width: usize) {
+    // # Iterate grid cells
+    let mut max_scenic_score = (0, 0, 0);
+    for row_idx in 0..height {
+        for col_idx in 0..width {
+            let cur_cell_idx = row_idx * width + col_idx;
+            let cur_height = grid[cur_cell_idx];
+            // ## Search upwards
+            let mut view_distance_up = 0;
+            for search_row_idx in (0..row_idx).rev() {
+                view_distance_up += 1;
+                let search_cell_idx = search_row_idx * width + col_idx;
+                let search_height = grid[search_cell_idx];
+                if search_height >= cur_height {
+                    break;
+                }
+            }
+            // ## Search downwards
+            let mut view_distance_down = 0;
+            for search_row_idx in row_idx + 1..height {
+                view_distance_down += 1;
+                let search_cell_idx = search_row_idx * width + col_idx;
+                let search_height = grid[search_cell_idx];
+                if search_height >= cur_height {
+                    break;
+                }
+            }
+            // ## Search leftwards
+            let mut view_distance_left = 0;
+            for search_col_idx in (0..col_idx).rev() {
+                view_distance_left += 1;
+                let search_cell_idx = row_idx * width + search_col_idx;
+                let search_height = grid[search_cell_idx];
+                if search_height >= cur_height {
+                    break;
+                }
+            }
+            // ## Search rightwards
+            let mut view_distance_right = 0;
+            for search_col_idx in col_idx+1..width {
+                view_distance_right += 1;
+                let search_cell_idx = row_idx * width + search_col_idx;
+                let search_height = grid[search_cell_idx];
+                if search_height >= cur_height {
+                    break;
+                }
+            }
+            let scenic_score =
+                view_distance_up * view_distance_down * view_distance_left * view_distance_right;
+            print!(
+                "{:?}",
+                (
+                    view_distance_up,
+                    view_distance_down,
+                    view_distance_left,
+                    view_distance_right,
+                    scenic_score,
+                )
+            );
+            if scenic_score > max_scenic_score.2 {
+                max_scenic_score = (col_idx, row_idx, scenic_score);
+            }
+        }
+        println!();
+    }
+    println!("{:?}", max_scenic_score);
+}
+
+fn part_1(grid: Vec<i32>, height: usize, width: usize) {
     // # Process grid
     let mut visible = HashSet::new();
     // ## Scan horizontal
@@ -76,6 +148,5 @@ fn main() {
         println!("");
     }
 
-    // # Part 1
     println!("visible trees: {}", visible.len());
 }
