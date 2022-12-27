@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, fs};
 
 const INPUT_PATH: &str = "input.txt";
-const ROUND_CNT: usize = 20;
+const ROUND_CNT: usize = 10000;
 
 fn main() {
     // # Parse input
@@ -68,10 +68,6 @@ fn main() {
         lines.next();
     }
 
-    println!("Initial state:");
-    print_monkeys(monkeys.iter());
-    println!();
-
     // # Process rounds
     for _ in 0..ROUND_CNT {
         for monkey_idx in 0..monkeys.len() {
@@ -80,18 +76,15 @@ fn main() {
                 let monkey = &mut monkeys[monkey_idx];
                 let op = &monkey.operation;
                 let item = monkey.items.pop_front().unwrap();
-                let new_value = (item.pow(op.exponent) * op.multiply + op.add) / 3;
+                let new_value = (item.pow(op.exponent) * op.multiply + op.add) % 9_699_690;
                 let new_monkey_idx = if new_value % monkeys[monkey_idx].divisor == 0 {
                     monkeys[monkey_idx].target_on_success
                 } else {
                     monkeys[monkey_idx].target_on_fail
                 };
-                // println!("monkey[{}] = {} => monkey[{}] = {}", monkey_idx, item, new_monkey_idx, new_value);
                 monkeys[new_monkey_idx].items.push_back(new_value);
             }
         }
-        print_monkeys(monkeys.iter());
-        println!();
     }
     monkeys.sort_by_key(|m| m.inspected_cnt);
     let shenanigans: usize = monkeys
@@ -104,20 +97,11 @@ fn main() {
     println!("Shenanigans: {}", shenanigans);
 }
 
-fn print_monkeys<'a>(monkeys: impl Iterator<Item = &'a Monkey>) {
-    for (i, monkey) in monkeys.enumerate() {
-        println!(
-            "{}: items: {:?}, inspected: {}",
-            i, monkey.items, monkey.inspected_cnt
-        );
-    }
-}
-
 #[derive(Debug)]
 struct Monkey {
-    items: VecDeque<i32>,
+    items: VecDeque<i64>,
     operation: Op,
-    divisor: i32,
+    divisor: i64,
     target_on_success: usize,
     target_on_fail: usize,
     inspected_cnt: usize,
@@ -126,6 +110,6 @@ struct Monkey {
 #[derive(Debug)]
 struct Op {
     exponent: u32,
-    multiply: i32,
-    add: i32,
+    multiply: i64,
+    add: i64,
 }
