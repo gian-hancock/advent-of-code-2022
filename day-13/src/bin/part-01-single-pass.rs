@@ -1,11 +1,6 @@
+use std::str::Chars;
 use std::{fs, cmp::Ordering};
 use std::iter::Peekable;
-
-#[derive(Debug)]
-struct Value {
-    pub value: Option<i32>,
-    pub level: i32,
-}
 
 fn main() {
     const ITER_COUNT: usize = 1;
@@ -24,10 +19,7 @@ fn run() -> i32 {
     loop {
         let line_a = lines.next().unwrap();
         let line_b = lines.next().unwrap();
-        let scanner_a = Scanner::new(line_a.chars());
-        let scanner_b = Scanner::new(line_b.chars());
-        let is_correct_order = compare(scanner_a, scanner_b) != Ordering::Greater;
-        if is_correct_order {
+        if compare_str(line_a, line_b) != Ordering::Greater {
             correct_order_index_sum += i + 1;
         }
         if lines.next() == None {
@@ -38,75 +30,54 @@ fn run() -> i32 {
     correct_order_index_sum
 }
 
-fn compare(
-    mut a: impl Iterator<Item = Value>,
-    mut b: impl Iterator<Item = Value>,
-) -> Ordering {
-    while let Some(value_a) = a.next() {
-        let value_b = b.next().unwrap();
-        let mut ordering = value_a.value.unwrap_or(-1).cmp(&value_b.value.unwrap_or(-1));
-        if ordering == Ordering::Equal {
-            ordering = value_a.level.cmp(&value_b.level);
-        }
+fn compare_str(a: &str, b: &str) -> Ordering {
+    let mut chars_a = a.chars().peekable();
+    let mut chars_b = b.chars().peekable();
+    loop {
+        let a_value = next_value(&mut chars_a);
+        let b_value = next_value(&mut chars_b);
+        let ordering = a_value.cmp(&b_value);
         if ordering != Ordering::Equal {
             return ordering
         }
     }
-    Ordering::Equal
-}
-
-struct Scanner<T: Iterator<Item = char>> {
-    chars: Peekable<T>,
-    level: i32,
-}
-
-impl<T: Iterator<Item = char>> Scanner<T> {
-    fn new(chars: T) -> Scanner<T> where T: Iterator<Item = char> {
-        Scanner { chars: chars.peekable(), level: 0 }
-    }
-
-    fn next_value(&mut self) -> Value {
-        let mut buffer = String::new();
+    
+    fn next_value(chars: &mut Peekable<Chars>) -> (i32, i32) {
+        let mut integer = None;
+        let mut level = 0;
         loop {
-            match self.chars.peek() {
-                Some('[') => {
-                    self.chars.next();
-                    self.level += 1;
-                }
-                Some(']') => {
-                    self.level -= 1;
-                    if buffer.len() > 0 {
-                        return Value {
-                            value: Some(buffer.parse().unwrap()),
-                            level: self.level + 1
+            let c = chars.peek().unwrap();
+            match c {
+                ']' => {
+                    match integer {
+                        Some(i) => {
+                            return (i, level);
                         }
-                    } else {
-                        self.chars.next();
-                        return Value {
-                            value: None,
-                            level: self.level + 1
+                        _ => {
+                            chars.next();
+                            level -= 1;
+                            return (-1, level);
                         }
                     }
                 }
-                Some(',') => {
-                    self.chars.next();
-                    if let Ok(value) = buffer.parse() {
-                        return Value { value: Some(value), level: self.level }
-                    }
+                '[' => {
+                    chars.next();
+                    level += 1
+                }
+                c if c.is_ascii_digit() => {
+                    let integer = integer.get_or_insert(0);
+                    *integer *= 10;
+                    *integer += (*c as u32 - '0' as u32) as i32;
+                    chars.next();
                 }
                 _ => {
-                    buffer.push(self.chars.next().unwrap());
+                    chars.next();
+                    match integer {
+                        Some(i) => return (i, level),
+                        _ => {}
+                    }
                 }
             }
         }
-    }
-}
-
-impl<T: Iterator<Item = char>> Iterator for Scanner<T> {
-    type Item = Value;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let r = self.next_value();
-        Some(r)
     }
 }
