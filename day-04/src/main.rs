@@ -46,7 +46,7 @@ fn parse_line(line: &String) -> ((i32, i32), (i32, i32)) {
     ((range_1_lower, range_1_upper,), (range_2_lower, range_2_upper,),)
 }
 
-fn next_int<T: Iterator<Item = char>>(chars: &mut Peekable<T>) -> i32 {
+fn next_value<T: Iterator<Item = char>>(chars: &mut Peekable<T>) -> i32 {
     let mut result = String::new();
     while matches!(chars.peek(), Some(c) if c.is_ascii_digit()) {
         result.push(chars.next().unwrap());
