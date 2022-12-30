@@ -1,4 +1,4 @@
-use std::{fs, str::Chars, iter::Peekable, cmp::Ordering};
+use std::{cmp::Ordering, fs, iter::Peekable, str::Chars};
 
 #[derive(Debug)]
 enum Value {
@@ -7,7 +7,7 @@ enum Value {
 }
 
 fn main() {
-    const ITER_COUNT: usize = 1;
+    const ITER_COUNT: usize = 10_000;
     let mut total = 0;
     for _ in 0..ITER_COUNT {
         total += run();
@@ -26,7 +26,7 @@ fn run() -> i32 {
         if a.cmp(&b) != Ordering::Greater {
             correct_order_index_sum += i + 1;
         }
-        if lines.next() == None {
+        if lines.next().is_none() {
             break;
         }
         i += 1;
@@ -63,9 +63,7 @@ impl Value {
                     buffer.push(*c);
                     chars.next();
                 }
-                Some(_) => {
-                    return Value::Integer(buffer.parse().unwrap())
-                }
+                Some(_) => return Value::Integer(buffer.parse().unwrap()),
                 _ => panic!(),
             }
         }
@@ -75,12 +73,12 @@ impl Value {
         match (self, other) {
             (Value::Integer(a), Value::Integer(b)) => a.cmp(b),
             (Value::List(a), Value::List(b)) => Value::cmp_list(a, b),
-            (Value::Integer(a), Value::List(b)) => Value::cmp_list(&vec![Value::Integer(*a)], b),
-            (Value::List(a), Value::Integer(b)) => Value::cmp_list(a, &vec![Value::Integer(*b)]),
+            (Value::Integer(a), Value::List(b)) => Value::cmp_list(&[Value::Integer(*a)], b),
+            (Value::List(a), Value::Integer(b)) => Value::cmp_list(a, &[Value::Integer(*b)]),
         }
     }
 
-    fn cmp_list(a: &Vec<Value>, b: &Vec<Value>) -> Ordering {
+    fn cmp_list(a: &[Value], b: &[Value]) -> Ordering {
         let mut iter_a = a.iter();
         let mut iter_b = b.iter();
         loop {
