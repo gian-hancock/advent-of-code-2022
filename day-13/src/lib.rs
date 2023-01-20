@@ -8,7 +8,18 @@ pub fn compare_packets(a: &str, b: &str) -> Ordering {
     loop {
         let a_value = next_value(&mut chars_a);
         let b_value = next_value(&mut chars_b);
-        let ordering = a_value.cmp(&b_value);
+        let ordering = a_value.0.cmp(&b_value.0);
+        if ordering == Ordering::Equal {
+            if a_value.1 > b_value.1 {
+                for _ in 0..a_value.1 - b_value.1 {
+                    if next_value(&mut chars_a).0 != -1 { return Ordering::Greater }
+                }
+            } else if b_value.1 > a_value.1 {
+                for _ in 0..b_value.1 - a_value.1 {
+                    if next_value(&mut chars_b).0 != -1 { return Ordering::Less }
+                }
+            }
+        }
         if ordering != Ordering::Equal {
             return ordering;
         }
