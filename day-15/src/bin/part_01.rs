@@ -1,4 +1,5 @@
 use std::{collections::{HashSet}, ops::Sub};
+use day_15::Vec2;
 
 const LINE: i32 = 2_000_000;
 
@@ -40,10 +41,4 @@ fn main() {
     fn parse_int(s: &str, trailing_chars: usize) -> i32 {
         s[2..s.len()-trailing_chars].parse().unwrap()
     }
-}
-
-#[derive(Debug, Eq, Hash, PartialEq, Clone)]
-struct Vec2 {
-    x: i32,
-    y: i32,
 }
