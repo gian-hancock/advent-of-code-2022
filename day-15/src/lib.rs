@@ -49,6 +49,20 @@ pub mod test_case {
         Vec2 { x: 14, y: 11 },
         291,
     );
+
+    pub const MINIMAL: (&str, i32, Vec2, i64) = (
+        include_str!("../test_cases/minimal.txt"),
+        3,
+        Vec2 { x: 0, y: 0 },
+        0,
+    );
+
+    pub const SMALL_1: (&str, i32, Vec2, i64) = (
+        include_str!("../test_cases/small_1.txt"),
+        3,
+        Vec2 { x: 0, y: 0 },
+        0,
+    );
 }
 
 pub fn parse_and_solve_by_range_exclusion(input: &str, dimension: i32) -> (Vec2, i64) {
@@ -239,7 +253,9 @@ pub fn solve_by_column_skipping(sensors: &mut Vec<Sensor>, dimension: i32) -> (V
                 pos.y += 1;
 
                 // Remove sensors from consideration which exist completely above the current y pos.
-                while start_i < sensors.len() && sensors[start_i].pos.y + sensors[start_i].range < pos.y {
+                while start_i < sensors.len()
+                    && sensors[start_i].pos.y + sensors[start_i].range < pos.y
+                {
                     start_i += 1;
                 }
             }
@@ -256,6 +272,153 @@ pub fn solve_by_column_skipping(sensors: &mut Vec<Sensor>, dimension: i32) -> (V
     let answer = pos.x as i64 * dimension as i64 + pos.y as i64;
     let r = (pos, answer);
     r
+}
+
+pub fn solve_by_border_intersection(sensors: &mut Vec<Sensor>, dimension: i32) -> (Vec2, i64) {
+    /*
+    1. Generate pos_slope and neg_slope lines
+    2. Find all intersections between pos_slope and neg_slope lines
+        a. broad phase intersection detection (AABB). Optional, only as an optimisation
+        b. line intersection
+        c. line segment intersection (confirm line intersection is AABB)
+     */
+
+    // Generate all border line segemnts from sensors
+    let mut pos_slope_segments = Vec::new();
+    let mut neg_slope_segment = Vec::new();
+    for sensor in sensors.iter() {
+        pos_slope_segments.extend(create_positive_slope_segments(sensor));
+        neg_slope_segment.extend(create_negative_slope_segments(sensor));
+    }
+
+    for pos_slope_segment in pos_slope_segments.iter() {
+        for neg_slope_segment in neg_slope_segment.iter() {
+            let intersection = segment_intersection(&pos_slope_segment, &neg_slope_segment);
+            if let Some((pos, is_in_center)) = intersection {
+                let solution_candidates = if is_in_center {
+                    [
+                        Some(pos.clone()),
+                        Some(Vec2 {
+                            x: pos.x + 1,
+                            y: pos.y,
+                        }),
+                        Some(Vec2 {
+                            x: pos.x,
+                            y: pos.y + 1,
+                        }),
+                        Some(Vec2 {
+                            x: pos.x + 1,
+                            y: pos.y + 1,
+                        }),
+                    ]
+                } else {
+                    [Some(pos), None, None, None]
+                };
+                // iterate solution candidates which are is_some
+                for pos in solution_candidates
+                    .into_iter()
+                    .filter(|c| c.is_some())
+                    .map(|c| c.unwrap())
+                {
+                    if pos.x < 0 || pos.y < 0 || pos.x >= dimension || pos.y >= dimension {
+                        // Intersection is outside of the map
+                        continue;
+                    }
+                    let mut is_solution = true;
+                    for sensor in sensors.iter() {
+                        if pos.manhattan_distance(&sensor.pos) <= sensor.range {
+                            is_solution = false;
+                            break;
+                        }
+                    }
+                    if is_solution {
+                        let answer = pos.x as i64 * dimension as i64 + pos.y as i64;
+                        return (pos, answer);
+                    }
+                }
+            }
+        }
+    }
+
+    todo!();
+}
+
+fn create_positive_slope_segments(sensor: &Sensor) -> [Segment; 2] {
+    [
+        Segment {
+            y_intercept: sensor.pos.y - sensor.pos.x - (sensor.range + 1),
+            bounds: Aabb {
+                x: (sensor.pos.x..sensor.pos.x + (sensor.range + 1) + 1),
+                y: (sensor.pos.y - (sensor.range + 1)..sensor.pos.y + 1),
+            },
+        },
+        Segment {
+            y_intercept: sensor.pos.y - sensor.pos.x + (sensor.range + 1),
+            bounds: Aabb {
+                x: (sensor.pos.x - (sensor.range + 1)..sensor.pos.x + 1),
+                y: (sensor.pos.y..sensor.pos.y + 1 + (sensor.range + 1)),
+            },
+        },
+    ]
+}
+
+fn create_negative_slope_segments(sensor: &Sensor) -> [Segment; 2] {
+    [
+        Segment {
+            y_intercept: sensor.pos.y + sensor.pos.x - (sensor.range + 1),
+            bounds: Aabb {
+                x: (sensor.pos.x - (sensor.range + 1)..sensor.pos.x + 1),
+                y: (sensor.pos.y - (sensor.range + 1)..sensor.pos.y + 1),
+            },
+        },
+        Segment {
+            y_intercept: sensor.pos.y + sensor.pos.x + (sensor.range + 1),
+            bounds: Aabb {
+                x: (sensor.pos.x..sensor.pos.x + (sensor.range + 1) + 1),
+                y: (sensor.pos.y..sensor.pos.y + 1 + (sensor.range + 1)),
+            },
+        },
+    ]
+}
+
+/// Simplified line intersection algorithm for lines with slope 1 and -1.
+/// Returns Oprion<(intersection_point, is_intersection_in_center)>
+fn segment_intersection(
+    pos_slope_segment: &Segment,
+    neg_slope_segment: &Segment,
+) -> Option<(Vec2, bool)> {
+    // TODO: Pre AABB check may be faster
+    let y = (pos_slope_segment.y_intercept + neg_slope_segment.y_intercept) / 2;
+    let result = Vec2 {
+        x: -pos_slope_segment.y_intercept + y,
+        y: y,
+    };
+    if pos_slope_segment.bounds.contains(&result) && neg_slope_segment.bounds.contains(&result) {
+        Some((
+            result,
+            pos_slope_segment.y_intercept % 2 != neg_slope_segment.y_intercept % 2,
+        ))
+    } else {
+        None
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Aabb {
+    x: Range<i32>,
+    y: Range<i32>,
+}
+
+impl Aabb {
+    fn contains(&self, vec: &Vec2) -> bool {
+        self.x.contains(&vec.x) && self.y.contains(&vec.y)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Segment {
+    y_intercept: i32,
+    bounds: Aabb,
 }
 
 pub fn parse(input: &str, dimension: i32) -> Vec<Sensor> {
@@ -295,7 +458,7 @@ pub fn parse(input: &str, dimension: i32) -> Vec<Sensor> {
 /// - Breaks if there are more sensors than alphanumeric characters (36).
 /// - Breaks if too many sensors overlap at the same coordinate.
 #[allow(dead_code)]
-fn draw_map<'a, T>(dimension: i32, border: i32, sensor_iter_fn: &dyn Fn() -> T)
+pub fn draw_map<'a, T>(dimension: i32, border: i32, sensor_iter_fn: &dyn Fn() -> T)
 where
     T: IntoIterator<Item = &'a Sensor>,
 {
@@ -358,8 +521,191 @@ fn diag_to_rectangular(vec: &Vec2, dimension: i32) -> Vec2 {
 #[cfg(test)]
 mod tests {
     use crate::{
-        parse_and_solve_by_column_skipping, parse_and_solve_by_range_exclusion, test_case,
+        parse_and_solve_by_column_skipping, parse_and_solve_by_range_exclusion,
+        segment_intersection, test_case, Aabb, Segment, Sensor, Vec2,
     };
+
+    #[test]
+    fn create_segments() {
+        assert_eq!(
+            crate::create_positive_slope_segments(&Sensor {
+                line: 0,
+                pos: Vec2 { x: 0, y: 0 },
+                range: 0,
+                x_diag_range: 0..0,
+                y_diag_range: 0..0
+            }),
+            [
+                Segment {
+                    y_intercept: -1,
+                    bounds: Aabb { x: 0..2, y: -1..1 }
+                },
+                Segment {
+                    y_intercept: 1,
+                    bounds: Aabb { x: -1..1, y: 0..2 }
+                }
+            ]
+        );
+
+        assert_eq!(
+            crate::create_negative_slope_segments(&Sensor {
+                line: 0,
+                pos: Vec2 { x: 0, y: 0 },
+                range: 0,
+                x_diag_range: 0..0,
+                y_diag_range: 0..0
+            }),
+            [
+                Segment {
+                    y_intercept: -1,
+                    bounds: Aabb { x: -1..1, y: -1..1 }
+                },
+                Segment {
+                    y_intercept: 1,
+                    bounds: Aabb { x: 0..2, y: 0..2 }
+                }
+            ]
+        );
+
+        assert_eq!(
+            crate::create_positive_slope_segments(&Sensor {
+                line: 0,
+                pos: Vec2 { x: 2, y: 1 },
+                range: 0,
+                x_diag_range: 0..0,
+                y_diag_range: 0..0
+            }),
+            [
+                Segment {
+                    y_intercept: -2,
+                    bounds: Aabb { x: 2..4, y: 0..2 }
+                },
+                Segment {
+                    y_intercept: 0,
+                    bounds: Aabb { x: 1..3, y: 1..3 }
+                }
+            ]
+        );
+
+        assert_eq!(
+            crate::create_negative_slope_segments(&Sensor {
+                line: 0,
+                pos: Vec2 { x: 2, y: 1 },
+                range: 0,
+                x_diag_range: 0..0,
+                y_diag_range: 0..0
+            }),
+            [
+                Segment {
+                    y_intercept: 2,
+                    bounds: Aabb { x: 1..3, y: 0..2 }
+                },
+                Segment {
+                    y_intercept: 4,
+                    bounds: Aabb { x: 2..4, y: 1..3 }
+                }
+            ]
+        );
+
+        assert_eq!(
+            crate::create_positive_slope_segments(&Sensor {
+                line: 0,
+                pos: Vec2 { x: 1, y: 4 },
+                range: 2,
+                x_diag_range: 0..0,
+                y_diag_range: 0..0
+            }),
+            [
+                Segment {
+                    y_intercept: 0,
+                    bounds: Aabb { x: 1..5, y: 1..5 }
+                },
+                Segment {
+                    y_intercept: 6,
+                    bounds: Aabb { x: -2..2, y: 4..8 }
+                }
+            ]
+        );
+
+        assert_eq!(
+            crate::create_negative_slope_segments(&Sensor {
+                line: 0,
+                pos: Vec2 { x: 1, y: 4 },
+                range: 2,
+                x_diag_range: 0..0,
+                y_diag_range: 0..0
+            }),
+            [
+                Segment {
+                    y_intercept: 2,
+                    bounds: Aabb { x: -2..2, y: 1..5 },
+                },
+                Segment {
+                    y_intercept: 8,
+                    bounds: Aabb { x: 1..5, y: 4..8 },
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn intersect_segments() {
+        assert_eq!(
+            segment_intersection(
+                &Segment {
+                    y_intercept: 0,
+                    bounds: Aabb { x: 0..4, y: 0..4 },
+                },
+                &Segment {
+                    y_intercept: 3,
+                    bounds: Aabb { x: 0..4, y: 0..4 },
+                },
+            ),
+            Some((Vec2 { x: 1, y: 1 }, true))
+        );
+
+        assert_eq!(
+            segment_intersection(
+                &Segment {
+                    y_intercept: 0,
+                    bounds: Aabb { x: 0..4, y: 0..4 },
+                },
+                &Segment {
+                    y_intercept: 4,
+                    bounds: Aabb { x: 0..4, y: 0..4 },
+                },
+            ),
+            Some((Vec2 { x: 2, y: 2 }, false))
+        );
+
+        assert_eq!(
+            segment_intersection(
+                &Segment {
+                    y_intercept: 0,
+                    bounds: Aabb { x: 0..4, y: 0..4 },
+                },
+                &Segment {
+                    y_intercept: 4,
+                    bounds: Aabb { x: 3..6, y: -1..2 },
+                },
+            ),
+            None
+        );
+
+        assert_eq!(
+            segment_intersection(
+                &Segment {
+                    y_intercept: 0,
+                    bounds: Aabb { x: 0..2, y: 0..2 },
+                },
+                &Segment {
+                    y_intercept: 4,
+                    bounds: Aabb { x: 0..4, y: 0..4 },
+                },
+            ),
+            None
+        );
+    }
 
     #[test]
     fn range_exclusion_aoc_actual_case() {
