@@ -1,10 +1,10 @@
-use std::{collections::{HashSet}, ops::Sub};
 use day_15::Vec2;
+use std::{collections::HashSet, ops::Sub};
 
 const LINE: i32 = 2_000_000;
 
 fn main() {
-    let input = include_str!("../../input.txt");
+    let input = include_str!("../../test_cases/aoc_actual.txt");
 
     let mut min_x = 0;
     let mut max_x = 0;
@@ -24,7 +24,7 @@ fn main() {
         let range = (sensor.x - beacon.x).abs() + (sensor.y - beacon.y).abs();
         min_x = min_x.min(sensor.x - range);
         max_x = max_x.max(sensor.x + range);
-        
+
         if beacon.y == LINE {
             beacon_x.insert(beacon.x);
         }
@@ -39,6 +39,6 @@ fn main() {
     dbg!(visited_x.len());
 
     fn parse_int(s: &str, trailing_chars: usize) -> i32 {
-        s[2..s.len()-trailing_chars].parse().unwrap()
+        s[2..s.len() - trailing_chars].parse().unwrap()
     }
 }
