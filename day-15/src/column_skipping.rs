@@ -25,16 +25,19 @@ pub fn solve(sensors: &mut Vec<Sensor>, search_area_size: i32) -> (Vec2, i64) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{column_skipping::solve, test_case::{TestCase, self}};
+    use crate::{
+        column_skipping::solve,
+        test_case::{self, TestCase},
+    };
 
-    fn test_case<T>(test_case: T) where TestCase: From<T> {
+    fn test_case<T>(test_case: T)
+    where
+        TestCase: From<T>,
+    {
         let mut test_case = TestCase::from(test_case);
+        // Solve each test case in 4 different rotations.
         for _ in 0..4 {
-            let mut sensors = test_case
-                .sensors
-                .iter()
-                .cloned()
-                .collect();
+            let mut sensors = test_case.sensors.to_vec();
             let result = solve(&mut sensors, test_case.dimension);
             assert_eq!(&result.0, &test_case.expected_pos);
             assert_eq!(result.1, test_case.expected_answer());
@@ -42,15 +45,14 @@ mod tests {
         }
     }
 
-    #[test] 
+    #[test]
     fn const_test_cases() {
         for case in test_case::CONST_TEST_CASES {
             test_case(case);
         }
     }
 
-
-    #[test] 
+    #[test]
     fn file_test_cases() {
         for case in test_case::FILE_TEST_CASES {
             test_case(case);

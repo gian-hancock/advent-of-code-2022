@@ -1,4 +1,4 @@
-use day_15::{test_case, parse, column_skipping::solve};
+use day_15::{column_skipping::solve, parse, test_case};
 
 fn main() {
     let case = test_case::AOC_ACTUAL;

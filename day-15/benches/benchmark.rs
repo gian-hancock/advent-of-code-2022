@@ -1,29 +1,15 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use day_15::Sensor;
-use day_15::parse;
-// use day_15::parse_and_solve_by_border_intersection;
-use day_15::solve_by_border_intersection;
-use day_15::solve_by_column_skipping;
-use day_15::range_exclusion::solve;
+use day_15::border_intersection;
+use day_15::column_skipping;
+use day_15::range_exclusion;
+use day_15::range_exclusion::aabb_from_sensor;
 use day_15::test_case;
+use day_15::test_case::TestCase;
 
 pub fn bench_algorithms(c: &mut Criterion) {
-    struct Input {
-        name: &'static str,
-        sensors: Vec<Sensor>,
-        size: i32,
-    }
-    let inputs = [
-        Input {
-            name: "AOC Actual",
-            sensors: parse(test_case::AOC_ACTUAL.0),
-            size: test_case::AOC_ACTUAL.1,
-        },
-        Input {
-            name: "AOC Example",
-            sensors: parse(test_case::AOC_EXAMPLE.0),
-            size: test_case::AOC_EXAMPLE.1,
-        },
+    let inputs = vec![
+        TestCase::from(&test_case::AOC_ACTUAL),
+        TestCase::from(&test_case::AOC_EXAMPLE),
     ];
 
     let mut group = c.benchmark_group("Algorithm");
@@ -31,28 +17,32 @@ pub fn bench_algorithms(c: &mut Criterion) {
         group.bench_with_input(
             criterion::BenchmarkId::new("01. Column Skipping", input.name),
             &input,
-            |bencher, input| { 
+            |bencher, input| {
                 let mut sensors = input.sensors.clone();
-                bencher.iter(|| solve_by_column_skipping(&mut sensors, input.size)); 
-            }
+                bencher.iter(|| column_skipping::solve(&mut sensors, input.dimension));
+            },
         );
 
         group.bench_with_input(
             criterion::BenchmarkId::new("02. Range Exclusion", input.name),
             &input,
-            |bencher, input| { 
-                let mut sensors = input.sensors.clone();
-                bencher.iter(|| solve(&mut sensors, input.size)); 
-            }
+            |bencher, input| {
+                let mut sensors = input
+                    .sensors
+                    .iter()
+                    .map(|s| aabb_from_sensor(s, input.dimension))
+                    .collect();
+                bencher.iter(|| range_exclusion::solve(&mut sensors, input.dimension));
+            },
         );
 
         group.bench_with_input(
             criterion::BenchmarkId::new("03. Border Intersection", input.name),
             &input,
-            |bencher, input| { 
+            |bencher, input| {
                 let mut sensors = input.sensors.clone();
-                bencher.iter(|| solve_by_border_intersection(&mut sensors, input.size)); 
-            }
+                bencher.iter(|| border_intersection::solve(&mut sensors, input.dimension));
+            },
         );
     }
 }

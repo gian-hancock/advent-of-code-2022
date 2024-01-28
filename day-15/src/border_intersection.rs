@@ -1,23 +1,13 @@
 use crate::{Aabb, Sensor, Vec2};
 
 pub fn solve(sensors: &mut Vec<Sensor>, dimension: i32) -> (Vec2, i64) {
-    /*
-    1. Generate pos_slope and neg_slope lines
-    2. Find all intersections between pos_slope and neg_slope lines
-        a. broad phase intersection detection (AABB). Optional, only as an optimisation
-        b. line intersection
-        c. line segment intersection (confirm line intersection is AABB)
-     */
-
     // Generate all border line segemnts from sensors
     let mut pos_slope_segments = Vec::new();
     let mut neg_slope_segment = Vec::new();
-    dbg!(&sensors);
     for sensor in sensors.iter() {
         pos_slope_segments.extend(create_positive_slope_segments(sensor));
         neg_slope_segment.extend(create_negative_slope_segments(sensor));
     }
-    dbg!(&pos_slope_segments, &neg_slope_segment);
 
     // check for solutions in corners
     for point in &[
@@ -29,14 +19,14 @@ pub fn solve(sensors: &mut Vec<Sensor>, dimension: i32) -> (Vec2, i64) {
         },
         Vec2 { x: dimension, y: 0 },
     ] {
-        if let Some(solution) = is_solution(&point, sensors.iter(), dimension) {
+        if let Some(solution) = is_solution(point, sensors.iter(), dimension) {
             return solution;
         }
     }
 
     for pos_slope_segment in pos_slope_segments.iter() {
         for neg_slope_segment in neg_slope_segment.iter() {
-            let intersection = segment_intersection(&pos_slope_segment, &neg_slope_segment);
+            let intersection = segment_intersection(pos_slope_segment, neg_slope_segment);
             if let Some((pos, is_in_center)) = intersection {
                 let solution_candidates = if is_in_center {
                     [
@@ -57,13 +47,10 @@ pub fn solve(sensors: &mut Vec<Sensor>, dimension: i32) -> (Vec2, i64) {
                 } else {
                     [Some(pos), None, None, None]
                 };
-                // iterate solution candidates which are is_some
                 for pos in solution_candidates
                     .into_iter()
-                    .filter(|c| c.is_some())
-                    .map(|c| c.unwrap())
+                    .flatten()
                 {
-                    dbg!(&pos);
                     if pos.x < 0 || pos.y < 0 || pos.x > dimension || pos.y > dimension {
                         // Intersection is outside of the map
                         continue;
@@ -89,7 +76,7 @@ pub fn solve(sensors: &mut Vec<Sensor>, dimension: i32) -> (Vec2, i64) {
             }
         }
         let answer = point.x as i64 * dimension as i64 + point.y as i64;
-        return Some((point.clone(), answer));
+        Some((point.clone(), answer))
     }
 }
 
@@ -132,12 +119,11 @@ fn create_negative_slope_segments(sensor: &Sensor) -> [Segment; 2] {
 }
 
 /// Simplified line intersection algorithm for lines with slope 1 and -1.
-/// Returns Oprion<(intersection_point, is_intersection_in_center)>
+/// Returns Option<(intersection_point, is_intersection_in_center)>
 fn segment_intersection(
     pos_slope_segment: &Segment,
     neg_slope_segment: &Segment,
 ) -> Option<(Vec2, bool)> {
-    // TODO: Pre AABB check may be faster
     let y = (pos_slope_segment.y_intercept + neg_slope_segment.y_intercept) / 2;
     let result = Vec2 {
         x: -pos_slope_segment.y_intercept + y,
@@ -175,14 +161,11 @@ mod tests {
         TestCase: From<T>,
         T: std::fmt::Debug,
     {
-        dbg!(&test_case);
         let mut test_case = TestCase::from(test_case);
-        dbg!(&test_case);
-        for i in 0..4 {
-            let mut sensors = test_case.sensors.iter().cloned().collect();
-            dbg!(&sensors);
+        // Test each case in 4 rotations
+        for _i in 0..4 {
+            let mut sensors = test_case.sensors.to_vec();
             let result = solve(&mut sensors, test_case.dimension);
-            dbg!(&sensors, &result, &test_case);
             assert_eq!(&result.0, &test_case.expected_pos);
             assert_eq!(result.1, test_case.expected_answer());
             test_case = test_case.rotated();

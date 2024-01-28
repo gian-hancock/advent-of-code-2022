@@ -54,7 +54,7 @@ fn exclude_x_diag_axis(sensors: &Vec<Aabb>, dimension: i32) -> RangeSet {
     }
 
     // Assert preconditions
-    assert!(sensors.len() > 0, "There must be at least 1 sensor");
+    assert!(!sensors.is_empty(), "There must be at least 1 sensor");
     for i in 1..sensors.len() {
         assert!(
             sensors[i - 1].x.start <= sensors[i].x.start,
@@ -148,18 +148,7 @@ fn exclude_y_diag_axis<'a, I: Iterator<Item = &'a Aabb>>(
     // Main loop
     for sensor in sensors {
         if sensor.x.contains(&x_diag_coord) {
-            let mut range_to_sub = sensor.y.clone();
-            // // Depending on wither whether the xdiag coordinate is even or odd: the ydiag start
-            // // and end coordinates need to be even or odd. Expand the range to the nearest
-            // // odd/even coord by decrementing start and incrementing end as needed. This needs
-            // // be done because in diagonal space, moving one step in the direction of the xdiag
-            // // axis increases the ydiag coordinate by 2.
-            // if range_to_sub.start % 2 != x_diag_coord % 2 + dimension % 2 {
-            //     range_to_sub.start -= 1;
-            // }
-            // if range_to_sub.end % 2 == x_diag_coord % 2 + dimension % 2 {
-            //     range_to_sub.end += 1;
-            // }
+            let range_to_sub = sensor.y.clone();
             result.subtract_range(&range_to_sub);
         }
     }
@@ -310,7 +299,6 @@ impl RangeSet {
         // Find range before and after range_to_subtract
         let mut before_idx = -1;
         let mut after_idx = self.ranges.len() as i32;
-        // TODO: Short circuit
         for (i, range) in self.ranges.iter().enumerate() {
             if range.before(range_to_subtract) {
                 before_idx = i as i32;
@@ -358,7 +346,7 @@ mod tests {
             aabb_from_sensor, diagonal_to_rectangular, rectangular_to_diagonal, solve, RangeOps,
             RangeSet,
         },
-        test_case::{self, ConstTestCase, FileTestCase, TestCase},
+        test_case::{self, TestCase},
         Vec2,
     };
 
@@ -427,6 +415,7 @@ mod tests {
         TestCase: From<T>,
     {
         let mut test_case = TestCase::from(test_case);
+        // Test each cast with 4 rotations
         for _ in 0..4 {
             let mut sensors = test_case
                 .sensors
@@ -468,9 +457,9 @@ mod tests {
         assert_eq!((0..100).truncate_before(50), 50..100);
         assert_eq!((0..100).truncate_after(100), 0..100);
         assert_eq!((0..100).truncate_before(0), 0..100);
-        assert!((0..100).truncate_after(-100).len() == 0);
+        assert!((0..100).truncate_after(-100).is_empty());
         dbg!((0..100).truncate_after(-100));
-        assert!((0..100).truncate_before(200).len() == 0);
+        assert!((0..100).truncate_before(200).is_empty());
     }
 
     #[test]

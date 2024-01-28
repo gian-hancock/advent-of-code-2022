@@ -402,12 +402,8 @@ pub mod test_case {
     ];
 
     pub fn get_test_cases() -> impl Iterator<Item = TestCase> {
-        let a = CONST_TEST_CASES
-            .iter()
-            .map(|case| Into::<TestCase>::into(case));
-        let b = FILE_TEST_CASES
-            .iter()
-            .map(|case| Into::<TestCase>::into(case));
+        let a = CONST_TEST_CASES.iter().map(Into::<TestCase>::into);
+        let b = FILE_TEST_CASES.iter().map(Into::<TestCase>::into);
         a.chain(b)
     }
 }
