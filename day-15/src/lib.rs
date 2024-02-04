@@ -3,6 +3,7 @@ use std::ops::Range;
 pub mod border_intersection;
 pub mod column_skipping;
 pub mod range_exclusion;
+pub mod brute_force;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Aabb {

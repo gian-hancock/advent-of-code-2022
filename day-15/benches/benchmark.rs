@@ -15,6 +15,15 @@ pub fn bench_algorithms(c: &mut Criterion) {
     let mut group = c.benchmark_group("Algorithm");
     for input in inputs.iter() {
         group.bench_with_input(
+            criterion::BenchmarkId::new("00. Brute Force", input.name),
+            &input,
+            |bencher, input| {
+                let mut sensors = input.sensors.clone();
+                bencher.iter(|| if input.name != test_case::AOC_ACTUAL.name { day_15::brute_force::solve(&mut sensors, input.dimension); });
+            },
+        );
+
+        group.bench_with_input(
             criterion::BenchmarkId::new("01. Column Skipping", input.name),
             &input,
             |bencher, input| {
