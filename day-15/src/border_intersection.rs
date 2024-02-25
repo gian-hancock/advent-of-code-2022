@@ -1,14 +1,6 @@
 use crate::{Aabb, Sensor, Vec2};
 
 pub fn solve(sensors: &mut Vec<Sensor>, dimension: i32) -> (Vec2, i64) {
-    // Generate all border line segemnts from sensors
-    let mut pos_slope_segments = Vec::new();
-    let mut neg_slope_segment = Vec::new();
-    for sensor in sensors.iter() {
-        pos_slope_segments.extend(create_positive_slope_segments(sensor));
-        neg_slope_segment.extend(create_negative_slope_segments(sensor));
-    }
-
     // check for solutions in corners
     for point in &[
         Vec2 { x: 0, y: 0 },
@@ -24,6 +16,15 @@ pub fn solve(sensors: &mut Vec<Sensor>, dimension: i32) -> (Vec2, i64) {
         }
     }
 
+    // Generate all border line segments from sensors
+    let mut pos_slope_segments = Vec::new();
+    let mut neg_slope_segment = Vec::new();
+    for sensor in sensors.iter() {
+        pos_slope_segments.extend(create_positive_slope_segments(sensor));
+        neg_slope_segment.extend(create_negative_slope_segments(sensor));
+    }
+
+    // Find intersections and check for solutions
     for pos_slope_segment in pos_slope_segments.iter() {
         for neg_slope_segment in neg_slope_segment.iter() {
             let intersection = segment_intersection(pos_slope_segment, neg_slope_segment);

@@ -4,22 +4,18 @@ pub fn solve(sensors: &mut [Sensor], dimension: i32) -> (Vec2, i64) {
     const MAX_ITERS: i32 = 10_000_000;
     let mut count = 0;
     for x in 0..=dimension {
-        for y in 0..=dimension {
+        'iter_points: for y in 0..=dimension {
             if count >= MAX_ITERS {
                 panic!("Too many iterations: {count}");
             }
             count += 1;
-            let mut is_solution = true;
             for sensor in sensors.iter() {
-                if (sensor.pos.x - x).abs() + (sensor.pos.y - y).abs() <= sensor.range {
-                    is_solution = false;
-                    break;
+                if sensor.pos.manhattan_distance(&Vec2 { x, y }) <= sensor.range {
+                    continue 'iter_points;
                 }
             }
-            if is_solution {
-                let answer = x as i64 * dimension as i64 + y as i64;
-                return (Vec2 { x, y }, answer);
-            }
+            let answer = x as i64 * dimension as i64 + y as i64;
+            return (Vec2 { x, y }, answer);
         }
     }
     unreachable!("No solution found")
